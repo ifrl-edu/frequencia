@@ -20,11 +20,7 @@
       --preto: #222;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: var(--fundo);
@@ -43,15 +39,8 @@
       letter-spacing: 2px;
     }
 
-    .top-logo {
-      position: absolute;
-      top: 20px;
-      right: 40px;
-    }
-
-    .top-logo img {
-      height: 60px;
-    }
+    .top-logo { position: absolute; top: 20px; right: 40px; }
+    .top-logo img { height: 60px; }
 
     .card {
       background: var(--branco);
@@ -64,8 +53,7 @@
       text-align: center;
     }
 
-    input,
-    select {
+    input, select {
       width: 100%;
       padding: 14px;
       border-radius: 30px;
@@ -87,23 +75,14 @@
       transition: 0.3s;
     }
 
-    button:hover {
-      background: var(--verde-escuro);
-      transform: scale(1.05);
-    }
+    button:hover { background: var(--verde-escuro); transform: scale(1.05); }
 
-    .btn-vermelho {
-      background: var(--vermelho);
-    }
-
-    .hidden {
-      display: none;
-    }
+    .btn-vermelho { background: var(--vermelho); }
+    .hidden { display: none; }
 
     .section {
       width: 95%;
       max-width: 900px;
-
       margin-top: 40px;
       background: var(--branco);
       padding: 40px;
@@ -111,39 +90,16 @@
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
     }
 
-    .aluno {
-      padding: 15px;
-      border-bottom: 1px solid #eee;
-    }
+    .aluno { padding: 15px; border-bottom: 1px solid #eee; }
+    h3 { margin-bottom: 20px; }
 
-    h3 {
-      margin-bottom: 20px;
-    }
     @media (max-width: 768px) {
-
-  h1 {
-    font-size: 28px;
-    text-align: center;
-  }
-
-  .card {
-    padding: 30px 20px;
-  }
-
-  .section {
-    padding: 25px;
-  }
-
-  button {
-    width: 100%;
-  }
-
-  .top-logo img {
-    height: 45px;
-  }
-
-}
-
+      h1 { font-size: 28px; text-align: center; }
+      .card { padding: 30px 20px; }
+      .section { padding: 25px; }
+      button { width: 100%; }
+      .top-logo img { height: 45px; }
+    }
   </style>
 </head>
 
@@ -155,7 +111,7 @@
 
   <h1>SISTEMA DE FREQUÊNCIA</h1>
 
-  <!-- ✅ LOGIN ÚNICO (mantém seu design) -->
+  <!-- LOGIN -->
   <div class="card" id="loginDiv">
     <h3>LOGIN</h3>
     <input type="email" id="usuario" placeholder="Email" autocomplete="username" required>
@@ -164,10 +120,9 @@
     <p id="erro" style="color:red;margin-top:10px;"></p>
   </div>
 
-  <!-- ✅ SISTEMA (só aparece quando logar) -->
+  <!-- SISTEMA -->
   <div id="mainScreen" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
 
-    <!-- MENU -->
     <div class="card" id="menuDiv" style="display:none;">
       <h3>Painel Administrativo</h3>
 
@@ -181,224 +136,27 @@
       <button class="btn-vermelho" onclick="logout()">Sair</button>
     </div>
 
-    <!-- ÁREA DINÂMICA -->
     <div class="section hidden" id="area"></div>
-
   </div>
 
-  <!-- ✅ SCRIPT DO SISTEMA (SEM login/logout aqui) -->
-  <script>
-    // Dados locais (ainda localStorage). Depois a gente migra pra Firestore.
-    if (!localStorage.getItem("alunos")) localStorage.setItem("alunos", JSON.stringify([]));
-
-    // TROCAR TELAS
-    function mostrarTela(tipo) {
-      area.innerHTML = "";
-      area.classList.remove("hidden");
-
-      if (tipo === "cadastro") {
-        area.innerHTML = `
-          <h3>Cadastrar Aluno</h3>
-          <input id="nome" placeholder="Nome completo">
-          <input id="matricula" placeholder="Matrícula">
-          <input id="cpf" placeholder="CPF">
-          <button onclick="addAluno()">Cadastrar</button>
-        `;
-      }
-
-      if (tipo === "chamada") carregarChamada();
-      if (tipo === "historico") carregarHistorico();
-
-      if (tipo === "dados") {
-        let alunos = JSON.parse(localStorage.getItem("alunos"));
-        area.innerHTML = `
-          <h3>Consultar Dados do Aluno</h3>
-          <select id="selectDados"></select>
-          <button onclick="mostrarDadosAluno()">Consultar</button>
-          <div id="resultadoDados"></div>
-        `;
-        alunos.forEach((aluno, i) => {
-          selectDados.innerHTML += `<option value="${i}">${aluno.nome}</option>`;
-        });
-      }
-
-      if (tipo === "gerenciar") carregarGerenciamento();
-    }
-
-    // CADASTRAR ALUNO
-    function addAluno() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-      alunos.push({
-        nome: nome.value,
-        matricula: matricula.value,
-        cpf: cpf.value,
-        historico: []
-      });
-      localStorage.setItem("alunos", JSON.stringify(alunos));
-      alert("Aluno cadastrado!");
-    }
-
-    // CHAMADA
-    function carregarChamada() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-
-      area.innerHTML = `
-        <h3>Nova Chamada</h3>
-        <input type="date" id="dataChamada">
-        <div id="lista"></div>
-        <button onclick="salvarChamada()">Salvar Chamada</button>
-      `;
-
-      dataChamada.value = new Date().toISOString().split("T")[0];
-
-      alunos.forEach((aluno, i) => {
-        lista.innerHTML += `
-          <div class="aluno">
-            <strong>${aluno.nome}</strong> - ${aluno.matricula}
-            <select id="status_${i}">
-              <option>Presente</option>
-              <option>Falta</option>
-              <option>Justificada</option>
-            </select>
-            <input id="obs_${i}" placeholder="Observação">
-          </div>
-        `;
-      });
-    }
-
-    function salvarChamada() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-      let data = dataChamada.value;
-
-      alunos.forEach((aluno, i) => {
-        aluno.historico.push({
-          data,
-          status: document.getElementById("status_" + i).value,
-          obs: document.getElementById("obs_" + i).value
-        });
-
-        // reset visual após salvar (se você quiser)
-        document.getElementById("status_" + i).value = "Presente";
-        document.getElementById("obs_" + i).value = "";
-      });
-
-      localStorage.setItem("alunos", JSON.stringify(alunos));
-      alert("Chamada salva!");
-    }
-
-    // HISTÓRICO POR DATA
-    function carregarHistorico() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-
-      area.innerHTML = `
-        <h3>Consultar Histórico</h3>
-        <select id="selectAluno"></select>
-
-        <input type="date" id="dataInicio" placeholder="Data inicial">
-        <input type="date" id="dataFim" placeholder="Data final">
-
-        <button onclick="mostrarHistorico()">Consultar</button>
-        <div id="resultado"></div>
-      `;
-
-      alunos.forEach((aluno, i) => {
-        selectAluno.innerHTML += `<option value="${i}">${aluno.nome}</option>`;
-      });
-    }
-
-    function mostrarHistorico() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-      let aluno = alunos[selectAluno.value];
-      let inicio = dataInicio.value;
-      let fim = dataFim.value;
-
-      resultado.innerHTML = `<h3>${aluno.nome}</h3>`;
-
-      let filtrado = aluno.historico.filter(reg =>
-        (!inicio || reg.data >= inicio) &&
-        (!fim || reg.data <= fim)
-      );
-
-      if (filtrado.length === 0) {
-        resultado.innerHTML += "<p>Sem registros nesse período.</p>";
-        return;
-      }
-
-      filtrado.forEach(reg => {
-        resultado.innerHTML += `
-          <div class="aluno">
-            <strong>${reg.data}</strong><br>
-            Status: ${reg.status}<br>
-            Obs: ${reg.obs || "Nenhuma"}
-          </div>
-        `;
-      });
-    }
-
-    // CONSULTAR DADOS DO ALUNO
-    function mostrarDadosAluno() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-      let aluno = alunos[selectDados.value];
-
-      resultadoDados.innerHTML = `
-        <div class="aluno">
-          <strong>Nome:</strong> ${aluno.nome}<br>
-          <strong>Matrícula:</strong> ${aluno.matricula}<br>
-          <strong>CPF:</strong> ${aluno.cpf}
-        </div>
-      `;
-    }
-
-    // GERENCIAR / EXCLUIR ALUNOS
-    function carregarGerenciamento() {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-
-      area.innerHTML = `
-        <h3>Gerenciar Alunos</h3>
-        <div id="listaAlunosGerenciar"></div>
-      `;
-
-      if (alunos.length === 0) {
-        listaAlunosGerenciar.innerHTML = "<p>Nenhum aluno cadastrado.</p>";
-        return;
-      }
-
-      alunos.forEach((aluno, i) => {
-        listaAlunosGerenciar.innerHTML += `
-          <div class="aluno">
-            <strong>${aluno.nome}</strong><br>
-            Matrícula: ${aluno.matricula}<br>
-            CPF: ${aluno.cpf}<br>
-            <button class="btn-vermelho" onclick="excluirAluno(${i})">Excluir</button>
-          </div>
-        `;
-      });
-    }
-
-    function excluirAluno(index) {
-      let alunos = JSON.parse(localStorage.getItem("alunos"));
-
-      if (confirm("Tem certeza que deseja excluir este aluno?")) {
-        alunos.splice(index, 1);
-        localStorage.setItem("alunos", JSON.stringify(alunos));
-        carregarGerenciamento();
-      }
-    }
-  </script>
-
-  <!-- ✅ FIREBASE (MODULAR) - ÚNICO LUGAR QUE CONTROLA login/logout -->
+  <!-- FIREBASE (AUTH + FIRESTORE) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
     import {
-      getAuth,
-      signInWithEmailAndPassword,
-      onAuthStateChanged,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      doc,
+      deleteDoc,
+      query,
+      where,
+      orderBy,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // (Firestore fica pra próxima etapa — agora estamos só estabilizando login)
-    // import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-
+    // ✅ SUA CONFIG (mantive a sua)
     const firebaseConfig = {
       apiKey: "AIzaSyBCQ749PmF1P293ohEMsm7B-5UiN17uSRk",
       authDomain: "frequencia-b4d4c.firebaseapp.com",
@@ -411,28 +169,40 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // login() chamado pelo botão
+    // ====== CACHE ======
+    let ALUNOS = []; // [{id, nome, matricula, cpf}]
+
+    function hojeISO() {
+      return new Date().toISOString().split("T")[0];
+    }
+
+    async function carregarAlunos() {
+      const snap = await getDocs(collection(db, "alunos"));
+      ALUNOS = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+      return ALUNOS;
+    }
+
+    // ====== AUTH ======
     window.login = function () {
-      const email = document.getElementById("usuario").value;
+      const email = document.getElementById("usuario").value.trim();
       const senha = document.getElementById("senha").value;
 
       signInWithEmailAndPassword(auth, email, senha)
         .then(() => {
           document.getElementById("erro").innerText = "";
-          // Quem mostra/oculta é o onAuthStateChanged abaixo
         })
         .catch((error) => {
           document.getElementById("erro").innerText = "Erro: " + error.message;
         });
     };
 
-    // logout() chamado pelo menu
     window.logout = function () {
       signOut(auth);
     };
 
-    // controle de tela
     onAuthStateChanged(auth, (user) => {
       const loginDiv = document.getElementById("loginDiv");
       const mainScreen = document.getElementById("mainScreen");
@@ -450,9 +220,243 @@
         if (menuDiv) menuDiv.style.display = "none";
       }
     });
+
+    // ====== TELAS ======
+    window.mostrarTela = async function (tipo) {
+      const area = document.getElementById("area");
+      area.innerHTML = "";
+      area.classList.remove("hidden");
+
+      if (tipo === "cadastro") {
+        area.innerHTML = `
+          <h3>Cadastrar Aluno</h3>
+          <input id="nome" placeholder="Nome completo">
+          <input id="matricula" placeholder="Matrícula">
+          <input id="cpf" placeholder="CPF">
+          <button onclick="addAluno()">Cadastrar</button>
+        `;
+        return;
+      }
+
+      if (tipo === "chamada") {
+        await carregarAlunos();
+        area.innerHTML = `
+          <h3>Nova Chamada</h3>
+          <input type="date" id="dataChamada">
+          <div id="lista"></div>
+          <button onclick="salvarChamada()">Salvar Chamada</button>
+        `;
+
+        document.getElementById("dataChamada").value = hojeISO();
+        const lista = document.getElementById("lista");
+
+        if (ALUNOS.length === 0) {
+          lista.innerHTML = "<p>Nenhum aluno cadastrado.</p>";
+          return;
+        }
+
+        ALUNOS.forEach((aluno, i) => {
+          lista.innerHTML += `
+            <div class="aluno">
+              <strong>${aluno.nome}</strong> - ${aluno.matricula}
+              <select id="status_${i}">
+                <option>Presente</option>
+                <option>Falta</option>
+                <option>Justificada</option>
+              </select>
+              <input id="obs_${i}" placeholder="Observação">
+            </div>
+          `;
+        });
+        return;
+      }
+
+      if (tipo === "historico") {
+        await carregarAlunos();
+        area.innerHTML = `
+          <h3>Consultar Histórico</h3>
+          <select id="selectAluno"></select>
+
+          <input type="date" id="dataInicio" placeholder="Data inicial">
+          <input type="date" id="dataFim" placeholder="Data final">
+
+          <button onclick="mostrarHistorico()">Consultar</button>
+          <div id="resultado"></div>
+        `;
+
+        const select = document.getElementById("selectAluno");
+        if (ALUNOS.length === 0) {
+          document.getElementById("resultado").innerHTML = "<p>Nenhum aluno cadastrado.</p>";
+          return;
+        }
+
+        ALUNOS.forEach((a, idx) => {
+          select.innerHTML += `<option value="${idx}">${a.nome}</option>`;
+        });
+        return;
+      }
+
+      if (tipo === "dados") {
+        await carregarAlunos();
+        area.innerHTML = `
+          <h3>Consultar Dados do Aluno</h3>
+          <select id="selectDados"></select>
+          <button onclick="mostrarDadosAluno()">Consultar</button>
+          <div id="resultadoDados"></div>
+        `;
+
+        const select = document.getElementById("selectDados");
+        if (ALUNOS.length === 0) {
+          document.getElementById("resultadoDados").innerHTML = "<p>Nenhum aluno cadastrado.</p>";
+          return;
+        }
+
+        ALUNOS.forEach((a, idx) => {
+          select.innerHTML += `<option value="${idx}">${a.nome}</option>`;
+        });
+        return;
+      }
+
+      if (tipo === "gerenciar") {
+        await carregarAlunos();
+        area.innerHTML = `
+          <h3>Gerenciar Alunos</h3>
+          <div id="listaAlunosGerenciar"></div>
+        `;
+
+        const box = document.getElementById("listaAlunosGerenciar");
+        if (ALUNOS.length === 0) {
+          box.innerHTML = "<p>Nenhum aluno cadastrado.</p>";
+          return;
+        }
+
+        ALUNOS.forEach((a) => {
+          box.innerHTML += `
+            <div class="aluno">
+              <strong>${a.nome}</strong><br>
+              Matrícula: ${a.matricula}<br>
+              CPF: ${a.cpf}<br>
+              <button class="btn-vermelho" onclick="excluirAluno('${a.id}')">Excluir</button>
+            </div>
+          `;
+        });
+        return;
+      }
+
+      area.innerHTML = "<p>Tela não encontrada.</p>";
+    };
+
+    // ====== AÇÕES FIRESTORE ======
+    window.addAluno = async function () {
+      const nome = document.getElementById("nome").value.trim();
+      const matricula = document.getElementById("matricula").value.trim();
+      const cpf = document.getElementById("cpf").value.trim();
+
+      if (!nome || !matricula || !cpf) {
+        alert("Preencha Nome, Matrícula e CPF.");
+        return;
+      }
+
+      await addDoc(collection(db, "alunos"), {
+        nome,
+        matricula,
+        cpf,
+        criadoEm: serverTimestamp()
+      });
+
+      alert("Aluno cadastrado (online)!");
+      await carregarAlunos();
+    };
+
+    window.salvarChamada = async function () {
+      const data = document.getElementById("dataChamada").value;
+      if (!data) { alert("Escolha a data."); return; }
+
+      if (ALUNOS.length === 0) await carregarAlunos();
+      if (ALUNOS.length === 0) { alert("Nenhum aluno cadastrado."); return; }
+
+      // Salva um registro no histórico de cada aluno
+      for (let i = 0; i < ALUNOS.length; i++) {
+        const aluno = ALUNOS[i];
+        const status = document.getElementById("status_" + i).value;
+        const obs = document.getElementById("obs_" + i).value.trim();
+
+        await addDoc(collection(db, "alunos", aluno.id, "historico"), {
+          data,
+          status,
+          obs,
+          criadoEm: serverTimestamp()
+        });
+
+        // reset visual após salvar
+        document.getElementById("status_" + i).value = "Presente";
+        document.getElementById("obs_" + i).value = "";
+      }
+
+      alert("Chamada salva (online)!");
+    };
+
+    window.mostrarHistorico = async function () {
+      const idx = Number(document.getElementById("selectAluno").value);
+      const aluno = ALUNOS[idx];
+      const inicio = document.getElementById("dataInicio").value;
+      const fim = document.getElementById("dataFim").value;
+      const resultado = document.getElementById("resultado");
+
+      resultado.innerHTML = `<h3>${aluno.nome}</h3>`;
+
+      const col = collection(db, "alunos", aluno.id, "historico");
+      const filtros = [];
+
+      if (inicio) filtros.push(where("data", ">=", inicio));
+      if (fim) filtros.push(where("data", "<=", fim));
+
+      // ordena por data desc (data é YYYY-MM-DD, ordena bem)
+      const q = query(col, ...filtros, orderBy("data", "desc"));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        resultado.innerHTML += "<p>Sem registros nesse período.</p>";
+        return;
+      }
+
+      snap.forEach((d) => {
+        const reg = d.data();
+        resultado.innerHTML += `
+          <div class="aluno">
+            <strong>${reg.data}</strong><br>
+            Status: ${reg.status}<br>
+            Obs: ${reg.obs || "Nenhuma"}
+          </div>
+        `;
+      });
+    };
+
+    window.mostrarDadosAluno = function () {
+      const idx = Number(document.getElementById("selectDados").value);
+      const a = ALUNOS[idx];
+
+      document.getElementById("resultadoDados").innerHTML = `
+        <div class="aluno">
+          <strong>Nome:</strong> ${a.nome}<br>
+          <strong>Matrícula:</strong> ${a.matricula}<br>
+          <strong>CPF:</strong> ${a.cpf}
+        </div>
+      `;
+    };
+
+    window.excluirAluno = async function (alunoId) {
+      if (!confirm("Tem certeza que deseja excluir este aluno?")) return;
+
+      await deleteDoc(doc(db, "alunos", alunoId));
+      alert("Aluno excluído (online).");
+
+      await carregarAlunos();
+      // volta/atualiza a tela de gerenciar
+      window.mostrarTela("gerenciar");
+    };
   </script>
 
 </body>
 
 </html>
-
