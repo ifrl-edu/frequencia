@@ -2,13 +2,11 @@
 <html lang="pt-br">
 
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
   <title>Sistema de Frequência</title>
 
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Poppins:wght@300;400;500&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -76,7 +74,6 @@
     }
 
     button:hover { background: var(--verde-escuro); transform: scale(1.05); }
-
     .btn-vermelho { background: var(--vermelho); }
     .hidden { display: none; }
 
@@ -94,13 +91,24 @@
     h3 { margin-bottom: 20px; }
 
     .pill {
-      display:inline-block;
-      padding:6px 12px;
-      border-radius:999px;
-      background:#f1f1f1;
-      font-size:12px;
-      margin-top:10px;
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #f1f1f1;
+      font-size: 12px;
+      margin-top: 10px;
+      word-break: break-word;
     }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .row > * { flex: 1; min-width: 180px; }
 
     @media (max-width: 768px) {
       h1 { font-size: 28px; text-align: center; }
@@ -108,14 +116,14 @@
       .section { padding: 25px; }
       button { width: 100%; }
       .top-logo img { height: 45px; }
+      .row > * { min-width: 100%; }
     }
   </style>
 </head>
 
 <body>
-
   <div class="top-logo">
-    <img src="https://www.ifal.edu.br/sites/default/files/logo-ifal.png" alt="IFAL">
+    <img src="https://www.ifal.edu.br/sites/default/files/logo-ifal.png" alt="IFAL" />
   </div>
 
   <h1>SISTEMA DE FREQUÊNCIA</h1>
@@ -123,15 +131,14 @@
   <!-- LOGIN -->
   <div class="card" id="loginDiv">
     <h3>LOGIN</h3>
-    <input type="email" id="usuario" placeholder="Email" autocomplete="username" required>
-    <input type="password" id="senha" placeholder="Senha" autocomplete="current-password" required>
+    <input type="email" id="usuario" placeholder="Email" autocomplete="username" required />
+    <input type="password" id="senha" placeholder="Senha" autocomplete="current-password" required />
     <button onclick="login()">Entrar</button>
     <p id="erro" style="color:red;margin-top:10px;"></p>
   </div>
 
   <!-- SISTEMA -->
   <div id="mainScreen" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
-
     <div class="card" id="menuDiv" style="display:none;">
       <h3 id="tituloPainel">Painel</h3>
       <div class="pill" id="badgeRole" style="display:none;"></div>
@@ -175,7 +182,7 @@
       limit
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // ✅ SUA CONFIG (mantenha igual ao console)
+    // ====== SUA CONFIG (cole aqui a do Firebase Console se mudar) ======
     const firebaseConfig = {
       apiKey: "AIzaSyBCQ749PmF1P293ohEMsm7B-5UiN17uSRk",
       authDomain: "frequencia-b4d4c.firebaseapp.com",
@@ -194,10 +201,6 @@
     let CURRENT_ROLE = "aluno"; // 'admin' | 'aluno'
     let CURRENT_USER_EMAIL = "";
 
-    function hojeISO() {
-      return new Date().toISOString().split("T")[0];
-    }
-
     async function isAdminUID(uid) {
       const ref = doc(db, "admins", uid);
       const snap = await getDoc(ref);
@@ -212,9 +215,27 @@
       return ALUNOS;
     }
 
+    function hojeISO() {
+      return new Date().toISOString().split("T")[0];
+    }
+
+    function limparEmail(s) {
+      return String(s || "").trim().toLowerCase();
+    }
+
+    function renderBarraFrequencia(pct) {
+      const p = Math.max(0, Math.min(100, Math.round(pct || 0)));
+      return `
+        <strong>Frequência:</strong> ${p}%<br>
+        <div style="background:#eee; border-radius:999px; overflow:hidden; height:14px; margin-top:8px;">
+          <div style="width:${p}%; height:14px; background: var(--verde);"></div>
+        </div>
+      `;
+    }
+
     // ====== AUTH ======
     window.login = function () {
-      const email = document.getElementById("usuario").value.trim();
+      const email = limparEmail(document.getElementById("usuario").value);
       const senha = document.getElementById("senha").value;
 
       signInWithEmailAndPassword(auth, email, senha)
@@ -242,6 +263,8 @@
       const tituloPainel = document.getElementById("tituloPainel");
 
       if (!user) {
+        CURRENT_USER_EMAIL = "";
+        CURRENT_ROLE = "aluno";
         loginDiv.style.display = "block";
         mainScreen.style.display = "none";
         menuDiv.style.display = "none";
@@ -249,7 +272,6 @@
         return;
       }
 
-      // logado
       CURRENT_USER_EMAIL = user.email || "";
       const admin = await isAdminUID(user.uid);
       CURRENT_ROLE = admin ? "admin" : "aluno";
@@ -266,7 +288,6 @@
       menuAdmin.classList.toggle("hidden", !admin);
       menuAluno.classList.toggle("hidden", admin);
 
-      // se for aluno, já abre a situação dele
       if (!admin) {
         await window.mostrarTela("minhaSituacao");
       }
@@ -278,17 +299,16 @@
       area.innerHTML = "";
       area.classList.remove("hidden");
 
-      // ---------- ALUNO: Minha Situação ----------
+      // ---------- ALUNO ----------
       if (tipo === "minhaSituacao") {
-        // acha o aluno pelo email do login
-        const q = query(collection(db, "alunos"), where("email", "==", CURRENT_USER_EMAIL), limit(1));
+        const q = query(collection(db, "alunos"), where("email", "==", limparEmail(CURRENT_USER_EMAIL)), limit(1));
         const snap = await getDocs(q);
 
         if (snap.empty) {
           area.innerHTML = `
             <h3>Minha Situação</h3>
             <p>Seu email (<strong>${CURRENT_USER_EMAIL}</strong>) ainda não está vinculado a nenhum aluno no sistema.</p>
-            <p>Peça ao coordenador para cadastrar seu aluno com este email.</p>
+            <p>Peça ao coordenador para cadastrar seu aluno com este mesmo email.</p>
           `;
           return;
         }
@@ -296,7 +316,6 @@
         const docAluno = snap.docs[0];
         const a = { id: docAluno.id, ...docAluno.data() };
 
-        // calcula frequência (justificada conta como presença)
         const histSnap = await getDocs(collection(db, "alunos", a.id, "historico"));
 
         let total = 0, presentes = 0, faltas = 0, justificadas = 0;
@@ -310,21 +329,17 @@
           else if (s.includes("just")) justificadas++;
         });
 
-        const consideradasPresenca = presentes + justificadas;
-        const frequencia = total > 0 ? (consideradasPresenca / total) * 100 : 0;
-        const pct = Math.max(0, Math.min(100, Math.round(frequencia)));
+        // Regra: Justificada conta como presença
+        const freq = total > 0 ? ((presentes + justificadas) / total) * 100 : 0;
 
         area.innerHTML = `
           <h3>Minha Situação</h3>
           <div class="aluno">
-            <strong>Nome:</strong> ${a.nome}<br>
-            <strong>Matrícula:</strong> ${a.matricula}<br>
+            <strong>Nome:</strong> ${a.nome || "-"}<br>
+            <strong>Matrícula:</strong> ${a.matricula || "-"}<br>
             <strong>Turma:</strong> ${a.turma || "-"}<br><br>
 
-            <strong>Frequência:</strong> ${pct}%<br>
-            <div style="background:#eee; border-radius:999px; overflow:hidden; height:14px; margin-top:8px;">
-              <div style="width:${pct}%; height:14px; background: var(--verde);"></div>
-            </div>
+            ${renderBarraFrequencia(freq)}
 
             <div style="margin-top:12px; line-height:1.6;">
               <strong>Total:</strong> ${total}<br>
@@ -337,7 +352,7 @@
         return;
       }
 
-      // ---------- daqui pra baixo: ADMIN ----------
+      // ---------- ADMIN ----------
       if (CURRENT_ROLE !== "admin") {
         area.innerHTML = "<p>Acesso negado.</p>";
         return;
@@ -349,12 +364,17 @@
           <input id="nome" placeholder="Nome completo">
           <input id="matricula" placeholder="Matrícula">
           <input id="cpf" placeholder="CPF">
-          <input id="emailAluno" placeholder="Email do aluno (para login)" type="email">
+          <input id="emailAluno" placeholder="Email do aluno (login)" type="email">
           <select id="turma">
-            <option value="Turma A">Turma A</option>
-            <option value="Turma B">Turma B</option>
+            <option value="Manhã">Manhã</option>
+            <option value="Tarde">Tarde</option>
           </select>
+
           <button onclick="addAluno()">Cadastrar</button>
+
+          <p style="margin-top:14px; font-size:12px; color:#555; line-height:1.4;">
+            Dica: para o aluno entrar, crie também o usuário dele em <strong>Authentication</strong> com esse mesmo email.
+          </p>
         `;
         return;
       }
@@ -363,19 +383,22 @@
         await carregarAlunos();
         area.innerHTML = `
           <h3>Nova Chamada</h3>
-          <input type="date" id="dataChamada">
-          <select id="filtroTurma">
-            <option value="Todas">Todas as turmas</option>
-            <option value="Turma A">Turma A</option>
-            <option value="Turma B">Turma B</option>
-          </select>
+
+          <div class="row">
+            <input type="date" id="dataChamada">
+            <select id="filtroTurma">
+              <option value="Todas">Todas as turmas</option>
+              <option value="Manhã">Manhã</option>
+              <option value="Tarde">Tarde</option>
+            </select>
+          </div>
+
           <div id="lista"></div>
           <button onclick="salvarChamada()">Salvar Chamada</button>
         `;
 
         document.getElementById("dataChamada").value = hojeISO();
-        document.getElementById("filtroTurma").addEventListener("change", () => renderListaChamada());
-
+        document.getElementById("filtroTurma").addEventListener("change", renderListaChamada);
         renderListaChamada();
         return;
       }
@@ -384,16 +407,23 @@
         await carregarAlunos();
         area.innerHTML = `
           <h3>Consultar Histórico</h3>
+
           <select id="selectAluno"></select>
-          <input type="date" id="dataInicio">
-          <input type="date" id="dataFim">
+
+          <div class="row">
+            <input type="date" id="dataInicio" placeholder="Data inicial">
+            <input type="date" id="dataFim" placeholder="Data final">
+          </div>
+
           <button onclick="mostrarHistorico()">Consultar</button>
           <div id="resultado"></div>
         `;
 
         const select = document.getElementById("selectAluno");
+        const resultado = document.getElementById("resultado");
+
         if (ALUNOS.length === 0) {
-          document.getElementById("resultado").innerHTML = "<p>Nenhum aluno cadastrado.</p>";
+          resultado.innerHTML = "<p>Nenhum aluno cadastrado.</p>";
           return;
         }
 
@@ -413,8 +443,10 @@
         `;
 
         const select = document.getElementById("selectDados");
+        const box = document.getElementById("resultadoDados");
+
         if (ALUNOS.length === 0) {
-          document.getElementById("resultadoDados").innerHTML = "<p>Nenhum aluno cadastrado.</p>";
+          box.innerHTML = "<p>Nenhum aluno cadastrado.</p>";
           return;
         }
 
@@ -441,8 +473,8 @@
           box.innerHTML += `
             <div class="aluno">
               <strong>${a.nome}</strong><br>
-              Matrícula: ${a.matricula}<br>
-              CPF: ${a.cpf}<br>
+              Matrícula: ${a.matricula || "-"}<br>
+              CPF: ${a.cpf || "-"}<br>
               Email: ${a.email || "-"}<br>
               Turma: ${a.turma || "-"}<br>
               <button class="btn-vermelho" onclick="excluirAluno('${a.id}')">Excluir</button>
@@ -455,7 +487,7 @@
       area.innerHTML = "<p>Tela não encontrada.</p>";
     };
 
-    // Render da lista de chamada com filtro de turma
+    // ====== Chamada (render + salvar) ======
     function renderListaChamada() {
       const lista = document.getElementById("lista");
       const filtro = document.getElementById("filtroTurma").value;
@@ -469,10 +501,10 @@
       }
 
       lista.innerHTML = "";
-      filtrados.forEach((aluno, i) => {
+      filtrados.forEach((aluno) => {
         lista.innerHTML += `
           <div class="aluno">
-            <strong>${aluno.nome}</strong> - ${aluno.matricula} • ${aluno.turma || "-"}
+            <strong>${aluno.nome}</strong> - ${aluno.matricula || "-"} • ${aluno.turma || "-"}
             <select id="status_${aluno.id}">
               <option>Presente</option>
               <option>Falta</option>
@@ -489,11 +521,19 @@
       const nome = document.getElementById("nome").value.trim();
       const matricula = document.getElementById("matricula").value.trim();
       const cpf = document.getElementById("cpf").value.trim();
-      const email = document.getElementById("emailAluno").value.trim().toLowerCase();
+      const email = limparEmail(document.getElementById("emailAluno").value);
       const turma = document.getElementById("turma").value;
 
       if (!nome || !matricula || !cpf || !email || !turma) {
         alert("Preencha Nome, Matrícula, CPF, Email e Turma.");
+        return;
+      }
+
+      // (Opcional) evita emails duplicados
+      const qEmail = query(collection(db, "alunos"), where("email", "==", email), limit(1));
+      const existing = await getDocs(qEmail);
+      if (!existing.empty) {
+        alert("Já existe um aluno cadastrado com esse email.");
         return;
       }
 
@@ -566,7 +606,7 @@
       });
     };
 
-    // Dados + % (justificada conta como presença)
+    // Dados do aluno + % (Justificada conta como presença)
     window.mostrarDadosAluno = async function () {
       const idx = Number(document.getElementById("selectDados").value);
       const a = ALUNOS[idx];
@@ -587,22 +627,17 @@
         else if (s.includes("just")) justificadas++;
       });
 
-      const consideradasPresenca = presentes + justificadas;
-      const frequencia = total > 0 ? (consideradasPresenca / total) * 100 : 0;
-      const pct = Math.max(0, Math.min(100, Math.round(frequencia)));
+      const freq = total > 0 ? ((presentes + justificadas) / total) * 100 : 0;
 
       box.innerHTML = `
         <div class="aluno">
-          <strong>Nome:</strong> ${a.nome}<br>
-          <strong>Matrícula:</strong> ${a.matricula}<br>
-          <strong>CPF:</strong> ${a.cpf}<br>
+          <strong>Nome:</strong> ${a.nome || "-"}<br>
+          <strong>Matrícula:</strong> ${a.matricula || "-"}<br>
+          <strong>CPF:</strong> ${a.cpf || "-"}<br>
           <strong>Email:</strong> ${a.email || "-"}<br>
           <strong>Turma:</strong> ${a.turma || "-"}<br><br>
 
-          <strong>Frequência:</strong> ${pct}%<br>
-          <div style="background:#eee; border-radius:999px; overflow:hidden; height:14px; margin-top:8px;">
-            <div style="width:${pct}%; height:14px; background: var(--verde);"></div>
-          </div>
+          ${renderBarraFrequencia(freq)}
 
           <div style="margin-top:12px; line-height:1.6;">
             <strong>Total:</strong> ${total}<br>
@@ -622,7 +657,6 @@
       window.mostrarTela("gerenciar");
     };
   </script>
-
 </body>
 
 </html>
