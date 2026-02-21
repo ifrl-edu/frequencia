@@ -93,6 +93,15 @@
     .aluno { padding: 15px; border-bottom: 1px solid #eee; }
     h3 { margin-bottom: 20px; }
 
+    .pill {
+      display:inline-block;
+      padding:6px 12px;
+      border-radius:999px;
+      background:#f1f1f1;
+      font-size:12px;
+      margin-top:10px;
+    }
+
     @media (max-width: 768px) {
       h1 { font-size: 28px; text-align: center; }
       .card { padding: 30px 20px; }
@@ -124,14 +133,22 @@
   <div id="mainScreen" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
 
     <div class="card" id="menuDiv" style="display:none;">
-      <h3>Painel Administrativo</h3>
+      <h3 id="tituloPainel">Painel</h3>
+      <div class="pill" id="badgeRole" style="display:none;"></div>
 
-      <button onclick="mostrarTela('chamada')">Fazer Chamada</button>
-      <button onclick="mostrarTela('historico')">Consultar Histórico</button>
-      <button onclick="mostrarTela('cadastro')">Cadastrar Aluno</button>
+      <!-- Menu Admin -->
+      <div id="menuAdmin" class="hidden">
+        <button onclick="mostrarTela('chamada')">Fazer Chamada</button>
+        <button onclick="mostrarTela('historico')">Consultar Histórico</button>
+        <button onclick="mostrarTela('cadastro')">Cadastrar Aluno</button>
+        <button onclick="mostrarTela('dados')">Consultar Dados do Aluno</button>
+        <button onclick="mostrarTela('gerenciar')">Gerenciar Alunos</button>
+      </div>
 
-      <button onclick="mostrarTela('dados')">Consultar Dados do Aluno</button>
-      <button onclick="mostrarTela('gerenciar')">Gerenciar Alunos</button>
+      <!-- Menu Aluno -->
+      <div id="menuAluno" class="hidden">
+        <button onclick="mostrarTela('minhaSituacao')">Minha Situação</button>
+      </div>
 
       <button class="btn-vermelho" onclick="logout()">Sair</button>
     </div>
@@ -148,39 +165,49 @@
       collection,
       addDoc,
       getDocs,
+      getDoc,
       doc,
       deleteDoc,
       query,
       where,
       orderBy,
-      serverTimestamp
+      serverTimestamp,
+      limit
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // ✅ SUA CONFIG (mantive a sua)
+    // ✅ SUA CONFIG (mantenha igual ao console)
     const firebaseConfig = {
       apiKey: "AIzaSyBCQ749PmF1P293ohEMsm7B-5UiN17uSRk",
       authDomain: "frequencia-b4d4c.firebaseapp.com",
       projectId: "frequencia-b4d4c",
       storageBucket: "frequencia-b4d4c.firebasestorage.app",
       messagingSenderId: "591825878051",
-      appId: "1:591825878051:web:f1536e8ff6a4d34d5e8596",
-      measurementId: "G-H7S5DC322Y"
+      appId: "1:591825878051:web:f1536e8ff6a4d34d5e8596"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // ====== CACHE ======
-    let ALUNOS = []; // [{id, nome, matricula, cpf}]
+    // ====== ESTADO ======
+    let ALUNOS = [];
+    let CURRENT_ROLE = "aluno"; // 'admin' | 'aluno'
+    let CURRENT_USER_EMAIL = "";
 
     function hojeISO() {
       return new Date().toISOString().split("T")[0];
     }
 
+    async function isAdminUID(uid) {
+      const ref = doc(db, "admins", uid);
+      const snap = await getDoc(ref);
+      return snap.exists();
+    }
+
     async function carregarAlunos() {
       const snap = await getDocs(collection(db, "alunos"));
-      ALUNOS = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      ALUNOS = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
       return ALUNOS;
     }
@@ -203,21 +230,45 @@
       signOut(auth);
     };
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       const loginDiv = document.getElementById("loginDiv");
       const mainScreen = document.getElementById("mainScreen");
       const menuDiv = document.getElementById("menuDiv");
       const area = document.getElementById("area");
 
-      if (user) {
-        loginDiv.style.display = "none";
-        mainScreen.style.display = "flex";
-        menuDiv.style.display = "block";
-        if (area) area.classList.add("hidden");
-      } else {
+      const menuAdmin = document.getElementById("menuAdmin");
+      const menuAluno = document.getElementById("menuAluno");
+      const badgeRole = document.getElementById("badgeRole");
+      const tituloPainel = document.getElementById("tituloPainel");
+
+      if (!user) {
         loginDiv.style.display = "block";
         mainScreen.style.display = "none";
-        if (menuDiv) menuDiv.style.display = "none";
+        menuDiv.style.display = "none";
+        if (area) area.classList.add("hidden");
+        return;
+      }
+
+      // logado
+      CURRENT_USER_EMAIL = user.email || "";
+      const admin = await isAdminUID(user.uid);
+      CURRENT_ROLE = admin ? "admin" : "aluno";
+
+      loginDiv.style.display = "none";
+      mainScreen.style.display = "flex";
+      menuDiv.style.display = "block";
+      if (area) area.classList.add("hidden");
+
+      badgeRole.style.display = "inline-block";
+      badgeRole.innerText = admin ? `ADMIN • ${CURRENT_USER_EMAIL}` : `ALUNO • ${CURRENT_USER_EMAIL}`;
+      tituloPainel.innerText = admin ? "Painel Administrativo" : "Painel do Aluno";
+
+      menuAdmin.classList.toggle("hidden", !admin);
+      menuAluno.classList.toggle("hidden", admin);
+
+      // se for aluno, já abre a situação dele
+      if (!admin) {
+        await window.mostrarTela("minhaSituacao");
       }
     });
 
@@ -227,12 +278,82 @@
       area.innerHTML = "";
       area.classList.remove("hidden");
 
+      // ---------- ALUNO: Minha Situação ----------
+      if (tipo === "minhaSituacao") {
+        // acha o aluno pelo email do login
+        const q = query(collection(db, "alunos"), where("email", "==", CURRENT_USER_EMAIL), limit(1));
+        const snap = await getDocs(q);
+
+        if (snap.empty) {
+          area.innerHTML = `
+            <h3>Minha Situação</h3>
+            <p>Seu email (<strong>${CURRENT_USER_EMAIL}</strong>) ainda não está vinculado a nenhum aluno no sistema.</p>
+            <p>Peça ao coordenador para cadastrar seu aluno com este email.</p>
+          `;
+          return;
+        }
+
+        const docAluno = snap.docs[0];
+        const a = { id: docAluno.id, ...docAluno.data() };
+
+        // calcula frequência (justificada conta como presença)
+        const histSnap = await getDocs(collection(db, "alunos", a.id, "historico"));
+
+        let total = 0, presentes = 0, faltas = 0, justificadas = 0;
+        histSnap.forEach(d => {
+          const reg = d.data();
+          if (!reg || !reg.status) return;
+          total++;
+          const s = String(reg.status).toLowerCase();
+          if (s.includes("presente")) presentes++;
+          else if (s.includes("falta")) faltas++;
+          else if (s.includes("just")) justificadas++;
+        });
+
+        const consideradasPresenca = presentes + justificadas;
+        const frequencia = total > 0 ? (consideradasPresenca / total) * 100 : 0;
+        const pct = Math.max(0, Math.min(100, Math.round(frequencia)));
+
+        area.innerHTML = `
+          <h3>Minha Situação</h3>
+          <div class="aluno">
+            <strong>Nome:</strong> ${a.nome}<br>
+            <strong>Matrícula:</strong> ${a.matricula}<br>
+            <strong>Turma:</strong> ${a.turma || "-"}<br><br>
+
+            <strong>Frequência:</strong> ${pct}%<br>
+            <div style="background:#eee; border-radius:999px; overflow:hidden; height:14px; margin-top:8px;">
+              <div style="width:${pct}%; height:14px; background: var(--verde);"></div>
+            </div>
+
+            <div style="margin-top:12px; line-height:1.6;">
+              <strong>Total:</strong> ${total}<br>
+              <strong>Presenças:</strong> ${presentes}<br>
+              <strong>Justificadas:</strong> ${justificadas}<br>
+              <strong>Faltas:</strong> ${faltas}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // ---------- daqui pra baixo: ADMIN ----------
+      if (CURRENT_ROLE !== "admin") {
+        area.innerHTML = "<p>Acesso negado.</p>";
+        return;
+      }
+
       if (tipo === "cadastro") {
         area.innerHTML = `
           <h3>Cadastrar Aluno</h3>
           <input id="nome" placeholder="Nome completo">
           <input id="matricula" placeholder="Matrícula">
           <input id="cpf" placeholder="CPF">
+          <input id="emailAluno" placeholder="Email do aluno (para login)" type="email">
+          <select id="turma">
+            <option value="Turma A">Turma A</option>
+            <option value="Turma B">Turma B</option>
+          </select>
           <button onclick="addAluno()">Cadastrar</button>
         `;
         return;
@@ -243,31 +364,19 @@
         area.innerHTML = `
           <h3>Nova Chamada</h3>
           <input type="date" id="dataChamada">
+          <select id="filtroTurma">
+            <option value="Todas">Todas as turmas</option>
+            <option value="Turma A">Turma A</option>
+            <option value="Turma B">Turma B</option>
+          </select>
           <div id="lista"></div>
           <button onclick="salvarChamada()">Salvar Chamada</button>
         `;
 
         document.getElementById("dataChamada").value = hojeISO();
-        const lista = document.getElementById("lista");
+        document.getElementById("filtroTurma").addEventListener("change", () => renderListaChamada());
 
-        if (ALUNOS.length === 0) {
-          lista.innerHTML = "<p>Nenhum aluno cadastrado.</p>";
-          return;
-        }
-
-        ALUNOS.forEach((aluno, i) => {
-          lista.innerHTML += `
-            <div class="aluno">
-              <strong>${aluno.nome}</strong> - ${aluno.matricula}
-              <select id="status_${i}">
-                <option>Presente</option>
-                <option>Falta</option>
-                <option>Justificada</option>
-              </select>
-              <input id="obs_${i}" placeholder="Observação">
-            </div>
-          `;
-        });
+        renderListaChamada();
         return;
       }
 
@@ -276,10 +385,8 @@
         area.innerHTML = `
           <h3>Consultar Histórico</h3>
           <select id="selectAluno"></select>
-
-          <input type="date" id="dataInicio" placeholder="Data inicial">
-          <input type="date" id="dataFim" placeholder="Data final">
-
+          <input type="date" id="dataInicio">
+          <input type="date" id="dataFim">
           <button onclick="mostrarHistorico()">Consultar</button>
           <div id="resultado"></div>
         `;
@@ -291,7 +398,7 @@
         }
 
         ALUNOS.forEach((a, idx) => {
-          select.innerHTML += `<option value="${idx}">${a.nome}</option>`;
+          select.innerHTML += `<option value="${idx}">${a.nome} (${a.turma || "-"})</option>`;
         });
         return;
       }
@@ -312,7 +419,7 @@
         }
 
         ALUNOS.forEach((a, idx) => {
-          select.innerHTML += `<option value="${idx}">${a.nome}</option>`;
+          select.innerHTML += `<option value="${idx}">${a.nome} (${a.turma || "-"})</option>`;
         });
         return;
       }
@@ -336,6 +443,8 @@
               <strong>${a.nome}</strong><br>
               Matrícula: ${a.matricula}<br>
               CPF: ${a.cpf}<br>
+              Email: ${a.email || "-"}<br>
+              Turma: ${a.turma || "-"}<br>
               <button class="btn-vermelho" onclick="excluirAluno('${a.id}')">Excluir</button>
             </div>
           `;
@@ -346,21 +455,50 @@
       area.innerHTML = "<p>Tela não encontrada.</p>";
     };
 
-    // ====== AÇÕES FIRESTORE ======
+    // Render da lista de chamada com filtro de turma
+    function renderListaChamada() {
+      const lista = document.getElementById("lista");
+      const filtro = document.getElementById("filtroTurma").value;
+
+      let filtrados = ALUNOS;
+      if (filtro !== "Todas") filtrados = ALUNOS.filter(a => a.turma === filtro);
+
+      if (filtrados.length === 0) {
+        lista.innerHTML = "<p>Nenhum aluno nessa turma.</p>";
+        return;
+      }
+
+      lista.innerHTML = "";
+      filtrados.forEach((aluno, i) => {
+        lista.innerHTML += `
+          <div class="aluno">
+            <strong>${aluno.nome}</strong> - ${aluno.matricula} • ${aluno.turma || "-"}
+            <select id="status_${aluno.id}">
+              <option>Presente</option>
+              <option>Falta</option>
+              <option>Justificada</option>
+            </select>
+            <input id="obs_${aluno.id}" placeholder="Observação">
+          </div>
+        `;
+      });
+    }
+
+    // ====== AÇÕES (ADMIN) ======
     window.addAluno = async function () {
       const nome = document.getElementById("nome").value.trim();
       const matricula = document.getElementById("matricula").value.trim();
       const cpf = document.getElementById("cpf").value.trim();
+      const email = document.getElementById("emailAluno").value.trim().toLowerCase();
+      const turma = document.getElementById("turma").value;
 
-      if (!nome || !matricula || !cpf) {
-        alert("Preencha Nome, Matrícula e CPF.");
+      if (!nome || !matricula || !cpf || !email || !turma) {
+        alert("Preencha Nome, Matrícula, CPF, Email e Turma.");
         return;
       }
 
       await addDoc(collection(db, "alunos"), {
-        nome,
-        matricula,
-        cpf,
+        nome, matricula, cpf, email, turma,
         criadoEm: serverTimestamp()
       });
 
@@ -373,24 +511,22 @@
       if (!data) { alert("Escolha a data."); return; }
 
       if (ALUNOS.length === 0) await carregarAlunos();
-      if (ALUNOS.length === 0) { alert("Nenhum aluno cadastrado."); return; }
+      const filtro = document.getElementById("filtroTurma").value;
+      const listaParaSalvar = (filtro === "Todas") ? ALUNOS : ALUNOS.filter(a => a.turma === filtro);
 
-      // Salva um registro no histórico de cada aluno
-      for (let i = 0; i < ALUNOS.length; i++) {
-        const aluno = ALUNOS[i];
-        const status = document.getElementById("status_" + i).value;
-        const obs = document.getElementById("obs_" + i).value.trim();
+      if (listaParaSalvar.length === 0) { alert("Nenhum aluno para salvar."); return; }
+
+      for (const aluno of listaParaSalvar) {
+        const status = document.getElementById("status_" + aluno.id).value;
+        const obs = document.getElementById("obs_" + aluno.id).value.trim();
 
         await addDoc(collection(db, "alunos", aluno.id, "historico"), {
-          data,
-          status,
-          obs,
+          data, status, obs,
           criadoEm: serverTimestamp()
         });
 
-        // reset visual após salvar
-        document.getElementById("status_" + i).value = "Presente";
-        document.getElementById("obs_" + i).value = "";
+        document.getElementById("status_" + aluno.id).value = "Presente";
+        document.getElementById("obs_" + aluno.id).value = "";
       }
 
       alert("Chamada salva (online)!");
@@ -407,11 +543,9 @@
 
       const col = collection(db, "alunos", aluno.id, "historico");
       const filtros = [];
-
       if (inicio) filtros.push(where("data", ">=", inicio));
       if (fim) filtros.push(where("data", "<=", fim));
 
-      // ordena por data desc (data é YYYY-MM-DD, ordena bem)
       const q = query(col, ...filtros, orderBy("data", "desc"));
       const snap = await getDocs(q);
 
@@ -432,27 +566,59 @@
       });
     };
 
-    window.mostrarDadosAluno = function () {
+    // Dados + % (justificada conta como presença)
+    window.mostrarDadosAluno = async function () {
       const idx = Number(document.getElementById("selectDados").value);
       const a = ALUNOS[idx];
 
-      document.getElementById("resultadoDados").innerHTML = `
+      const box = document.getElementById("resultadoDados");
+      box.innerHTML = `<p>Carregando dados e frequência...</p>`;
+
+      const histSnap = await getDocs(collection(db, "alunos", a.id, "historico"));
+
+      let total = 0, presentes = 0, faltas = 0, justificadas = 0;
+      histSnap.forEach((d) => {
+        const reg = d.data();
+        if (!reg || !reg.status) return;
+        total++;
+        const s = String(reg.status).toLowerCase();
+        if (s.includes("presente")) presentes++;
+        else if (s.includes("falta")) faltas++;
+        else if (s.includes("just")) justificadas++;
+      });
+
+      const consideradasPresenca = presentes + justificadas;
+      const frequencia = total > 0 ? (consideradasPresenca / total) * 100 : 0;
+      const pct = Math.max(0, Math.min(100, Math.round(frequencia)));
+
+      box.innerHTML = `
         <div class="aluno">
           <strong>Nome:</strong> ${a.nome}<br>
           <strong>Matrícula:</strong> ${a.matricula}<br>
-          <strong>CPF:</strong> ${a.cpf}
+          <strong>CPF:</strong> ${a.cpf}<br>
+          <strong>Email:</strong> ${a.email || "-"}<br>
+          <strong>Turma:</strong> ${a.turma || "-"}<br><br>
+
+          <strong>Frequência:</strong> ${pct}%<br>
+          <div style="background:#eee; border-radius:999px; overflow:hidden; height:14px; margin-top:8px;">
+            <div style="width:${pct}%; height:14px; background: var(--verde);"></div>
+          </div>
+
+          <div style="margin-top:12px; line-height:1.6;">
+            <strong>Total:</strong> ${total}<br>
+            <strong>Presenças:</strong> ${presentes}<br>
+            <strong>Justificadas:</strong> ${justificadas}<br>
+            <strong>Faltas:</strong> ${faltas}
+          </div>
         </div>
       `;
     };
 
     window.excluirAluno = async function (alunoId) {
       if (!confirm("Tem certeza que deseja excluir este aluno?")) return;
-
       await deleteDoc(doc(db, "alunos", alunoId));
       alert("Aluno excluído (online).");
-
       await carregarAlunos();
-      // volta/atualiza a tela de gerenciar
       window.mostrarTela("gerenciar");
     };
   </script>
